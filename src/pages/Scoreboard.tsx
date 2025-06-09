@@ -1,6 +1,8 @@
-import React from 'react';
-import Container from '../components/ui/Container';
-import { Trophy, Clock, Calendar, User } from 'lucide-react';
+import React, { useEffect, useState } from "react";
+import Container from "../components/ui/Container";
+import { Trophy, Clock, Calendar, User } from "lucide-react";
+import { db } from "../firebase";
+import { collection, query, orderBy, getDocs } from "firebase/firestore";
 
 interface SpeedrunEntry {
   rank: number;
@@ -9,20 +11,35 @@ interface SpeedrunEntry {
   date: string;
 }
 
-const speedruns: SpeedrunEntry[] = [
-  { rank: 1, username: "SpeedDemon", time: "12:45", date: "15/03/2025" },
-  { rank: 2, username: "NinjaRunner", time: "13:20", date: "14/03/2025" },
-  { rank: 3, username: "QuickSilver", time: "13:55", date: "13/03/2025" },
-  { rank: 4, username: "TimeWarp", time: "14:30", date: "12/03/2025" },
-  { rank: 5, username: "RushMaster", time: "15:15", date: "11/03/2025" },
-  { rank: 6, username: "BlitzKing", time: "15:45", date: "10/03/2025" },
-  { rank: 7, username: "SpeedStar", time: "16:20", date: "09/03/2025" },
-  { rank: 8, username: "FastTrack", time: "16:55", date: "08/03/2025" },
-  { rank: 9, username: "RapidRun", time: "17:30", date: "07/03/2025" },
-  { rank: 10, username: "SwiftBlade", time: "18:15", date: "06/03/2025" },
-];
-
 const Scoreboard: React.FC = () => {
+  const [speedruns, setSpeedruns] = useState<SpeedrunEntry[]>([]);
+
+  useEffect(() => {
+    const cargarSpeedruns = async () => {
+      const q = query(collection(db, "Juego"), orderBy("tiempo", "asc"));
+      const snapshot = await getDocs(q);
+
+      const datos: SpeedrunEntry[] = [];
+      snapshot.forEach((doc, index) => {
+        const d = doc.data();
+        const tiempoEnSegundos = d.tiempo || 0;
+        const tiempoFormateado = `${Math.floor(tiempoEnSegundos / 60)}:${(tiempoEnSegundos % 60).toString().padStart(2, "0")}`;
+        const fecha = d.fecha?.toDate().toLocaleDateString("es-MX") ?? "—";
+
+        datos.push({
+          rank: index + 1,
+          username: d.nombre || "SinNombre",
+          time: tiempoFormateado,
+          date: fecha,
+        });
+      });
+
+      setSpeedruns(datos);
+    };
+
+    cargarSpeedruns();
+  }, []);
+
   return (
     <div className="pt-20">
       <Container className="py-12">
